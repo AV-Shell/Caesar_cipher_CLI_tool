@@ -1,0 +1,14 @@
+{
+  "name": "caesar-cipher-cli_av-shell_edition",
+  "version": "1.0.0",
+  "description": "task1 of nodejs course 2020q3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "av-shell",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^6.1.0"
+  }
+}
