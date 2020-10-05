@@ -2,96 +2,95 @@ console.log('atata');
 console.log(process.argv);
 const path = require('path');
 const fs = require('fs');
-// let t = path.resolve(process.argv[8]);
-// console.log(t);
+const CaesarCipheringMachine = require('./caesarCipher');
 
 const { program } = require('commander');
 const { pipeline } = require('stream');
+const { Transform } = require('stream');
+
+class myCaesarTransform extends Transform {
+  constructor (action, shift) {
+    super();
+    this.caesarMachine = new CaesarCipheringMachine(action, shift);
+  }
+  _transform(chunk, encoding, callback) {
+    try {
+      const resultString = this.caesarMachine.encrypt(chunk.toString('utf-8'));
+      callback(null, resultString);
+    } catch (err) {
+      callback(err);
+    }
+  }
+}
+
+
 program
-  .storeOptionsAsProperties(false)  
+  .storeOptionsAsProperties(false)
   .option('-s, --shift <shift>', 'a shift')
   .option('-a, --action <action>', 'an action encode/decode')
   .option('-i, --input <file>', 'an input file')
   .option('-o, --output <file>', 'an output file');
 program.parse(process.argv);
-const {shift, action, input, output} = program.opts();
+let { shift, action, input, output } = program.opts();
 console.log(program.opts());
 console.log(shift, action, input, output);
+
+if (parseInt( shift, 10) !== (shift - 0)) {
+  console.error(`Shift must be an integer! Not a '${shift}'`);
+  process.exit(9);
+}
+shift = parseInt( shift, 10) %26;
+shift = shift >= 0 ? shift : (26 + shift);
+
+if ((typeof (action) !== 'string') || (!((action === 'encode') || (action === 'decode')))){
+  console.error(`action must be 'encode' or 'decode'`);
+  process.exit(9);
+}
+
+console.log(shift, action, input, output);
+
+const myCaesar = new myCaesarTransform(action, shift);
+
 let inputFile;
 let outputFile;
+let inputStream;
+let outputStream;
 if (input) {
   inputFile = path.resolve(input);
-  // try {
-  //   if (fs.existsSync(inputFile)) {
-  //     console.log(inputFile);
-  //     // console.log(fs.access(inputFile));
-  //     fs.accesss(inputFile, fs.constants.F_OK | fs.constants.R_OK, (err) => {
-  //       if (err) {
-  //         console.error(`${inputFile} ${err.code === 'ENOENT' ? 'does not exist' : 'is read-only'}`);
-  //       } else {
-  //         console.log(`${inputFile} exists, and it is readable`);
-  //       }
-  //     });
-  //     try {
-  //       fs.accessSync(inputFile, fs.constants.F_OK | fs.constants.R_OK);
-  //       console.log(`${inputFile} exists, and it is readable`);
-  //     } catch (err) {
-  //       console.error(`${inputFile} ${err.code === 'ENOENT' ? 'does not exist' : 'is read-only'}`);
-  //     }
-
-
-  //   } else {
-  //     console.log('input file not exist1');
-  //   }
-  // } catch(err) {
-  //   console.error(err);
-  //   console.log('input file not exist');
-  // }
-
-        try {
-        fs.accessSync(inputFile, fs.constants.F_OK | fs.constants.R_OK);
-        console.log(`${inputFile} exists, and it is readable`);
-      } catch (err) {
-        console.error(`${inputFile} ${err.code === 'ENOENT' ? 'does not exist' : 'is cannot be read'}`);
-        process.exit(9);
-      }
+  try {
+    fs.accessSync(inputFile, fs.constants.F_OK | fs.constants.R_OK);
+    console.log(`${inputFile} exists, and it is readable`);
+    inputStream = fs.createReadStream(inputFile);
+  } catch (err) {
+    console.error(`${inputFile} ${err.code === 'ENOENT' ? 'does not exist' : 'is cannot be read'}`);
+    process.exit(9);
+  }
 } else {
-  inputFile = process.stdin;
+  inputStream = process.stdin;
 }
-if (input) {
+if (output) {
   outputFile = path.resolve(output);
-  // try {
-  //   if (fs.existsSync(outputFile)) {
-  //     console.log(outputFile);   
-  //   }
-  //   else {
-  //     console.log('output file not exist');
-  //   }
-  // } catch(err) {
-  //   console.log('output file not exist');
-  //   console.error(err);
-  // }
   try {
     fs.accessSync(outputFile, fs.constants.F_OK | fs.constants.W_OK);
     console.log(`${outputFile} exists, and it is readable`);
+    outputStream = fs.createWriteStream(outputFile,{flags:'a'});
   } catch (err) {
     console.error(`${outputFile} ${err.code === 'ENOENT' ? 'does not exist' : 'is cannot be write'}`);
     process.exit(9);
   }
 } else {
-  outputFile = process.stdout;
+  outputStream = process.stdout;
 }
 
-
-
 pipeline(
-  fs.createReadStream(inputFile),
-  fs.createWriteStream(outputFile),
+  inputStream,
+  myCaesar,
+  outputStream,
   (err) => {
     if (err) {
-      console.error('Pipeline failed.', err);
+      console.error('Problem with encription', err);
     } else {
-      console.log('Pipeline succeeded.');
+      console.log('Ecription succeeded.');
     }
   }
 );
