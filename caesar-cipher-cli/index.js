@@ -1,5 +1,3 @@
-console.log('atata');
-console.log(process.argv);
 const path = require('path');
 const fs = require('fs');
 const CaesarCipheringMachine = require('./caesarCipher');
@@ -32,8 +30,6 @@ program
   .option('-o, --output <file>', 'an output file');
 program.parse(process.argv);
 let { shift, action, input, output } = program.opts();
-console.log(program.opts());
-console.log(shift, action, input, output);
 
 if (parseInt( shift, 10) !== (shift - 0)) {
   console.error(`Shift must be an integer! Not a '${shift}'`);
@@ -47,7 +43,6 @@ if ((typeof (action) !== 'string') || (!((action === 'encode') || (action === 'd
   process.exit(9);
 }
 
-console.log(shift, action, input, output);
 
 const myCaesar = new myCaesarTransform(action, shift);
 
@@ -88,7 +83,8 @@ pipeline(
   outputStream,
   (err) => {
     if (err) {
-      console.error('Problem with encription', err);
+      console.error(`Problem with encription, ${err.code === 'EISDIR' ? 'It is not a file. It is a Directory!!' : 'LOL'}` );
+      process.exit(9);
     } else {
       console.log('Ecription succeeded.');
     }
